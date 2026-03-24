@@ -233,3 +233,24 @@ function sendgrid_integration_get_api_key() {
   }
   return $apikey ?? '';
 }
+
+/**
+ * Helper to check if the SendGrid library is available. First checks for
+ * Composer autoloading, then falls back to the bundled library if Composer
+ * isn't being used.
+ *
+ * @return bool
+ *   TRUE if the library is available, FALSE otherwise.
+ */
+function sendgrid_integration_check_library() {
+  $library_exists = class_exists(SendGrid\Client::class);
+  if (!$library_exists) {
+    // If we're not using Composer, try to use the bundled library.
+    $dir = backdrop_get_path('module', 'sendgrid_integration') . '/vendor/composer';
+    if (module_exists('xautoload') && file_exists($dir)) {
+      xautoload()->adapter->composerDir($dir);
+    }
+    $library_exists = class_exists(SendGrid\Client::class);
+  }
+  return $library_exists;
+}
