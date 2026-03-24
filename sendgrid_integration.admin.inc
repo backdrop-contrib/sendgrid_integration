@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * Provides the admin settings form for the SendGrid Integration module.
+ */
 
 /**
  * Provides Settings Form.
@@ -13,20 +17,30 @@ function sendgrid_integration_admin() {
   ];
 
   $requirenewkey = TRUE;
-  $apikey = $config->get('sendgrid_integration_apikey');
-  if (!empty($apikey)) {
-    $form['authentication']['secretkeynotice'] = [
-      '#markup' => t('You have saved a secret key. You may change the key by inputing a new one in the field directly below.'),
+  $apikey = sendgrid_integration_get_api_key();
+  $requirenewkey = empty($apikey);
+  $key_description = $requirenewkey ? t('The secret key of your key pair. These are only generated once by Sendgrid. ') : t('You have saved an API key, though it is hidden above. If you wish to change it, enter a new key here.');
+  if (module_exists('key')) {
+    if (user_access('administer keys')) {
+      $key_link = l(t('create a new key'), 'admin/config/system/keys/add');
+      $key_description .= ' ' . t('If the desired key is not listed, !link.', array('!link' => $key_link));
+    }
+    $form['authentication']['sendgrid_integration_secret_apikey'] = [
+      '#type' => 'key_select',
+      '#required' => $requirenewkey,
+      '#title' => t('API Secret Key'),
+      '#description' => $key_description,
     ];
-    $requirenewkey = FALSE;
   }
-
-  $form['authentication']['sendgrid_integration_apikey'] = [
-    '#type' => 'password',
-    '#required' => $requirenewkey,
-    '#title' => t('API Secret Key'),
-    '#description' => t('The secret key of your key pair. These are only generated once by Sendgrid. Your existing key is hidden. If you need to change this, provide a new key here.'),
-  ];
+  else {
+    $key_description .= ' ' . t('You may wish to install the Key module for a more secure way of storing your API key.');
+    $form['authentication']['sendgrid_integration_apikey'] = [
+      '#type' => 'password',
+      '#required' => $requirenewkey,
+      '#title' => t('API Secret Key'),
+      '#description' => $key_description,
+    ];
+  }
 
   $form['debugging']['maillog'] = [
     '#type' => 'fieldset',
@@ -206,7 +220,7 @@ function sendgrid_integration_test_submit($form, &$form_state) {
   // Set the defaults for reuse.
   $config->set('sendgrid_integration_test_defaults', $defaults);
   $config->save();
-  
+
   $params = array(
     'subject' => $form_state['values']['subject'],
     'body' => check_markup(

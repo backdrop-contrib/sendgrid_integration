@@ -134,7 +134,7 @@ function sendgrid_integration_get_bounces($start_date, $end_date, $type = NULL, 
   $config = config('sendgrid_integration.settings');
   $server = "https://sendgrid.com/api/bounces.get.json";
   $user = $config->get('sendgrid_integration_username');
-  $key = $config->get('sendgrid_integration_apikey');
+  $key = sendgrid_integration_get_api_key();
 
   if (isset($start_date) == FALSE || isset($end_date) == FALSE) {
     watchdog('sendgrid_integration', 'Error on calling get_bounches: Missing date parameter', [], WATCHDOG_NOTICE);
@@ -218,4 +218,18 @@ function sendgrid_integration_autoload_info() {
     'SendGridMailSystem' => 'inc/sendgrid.mail.inc',
   );
   return $implements;
+}
+
+/**
+ * Helper to return the API Key for SendGrid.
+ */
+function sendgrid_integration_get_api_key() {
+  $config = config('sendgrid_integration.settings');
+  if (module_exists('key')) {
+    $apikey = key_get_key_value($config->get('sendgrid_integration_secret_apikey'));
+  }
+  else {
+    $apikey = $config->get('sendgrid_integration_apikey');
+  }
+  return $apikey ?? '';
 }
