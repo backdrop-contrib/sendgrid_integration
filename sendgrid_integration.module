@@ -226,7 +226,8 @@ function sendgrid_integration_autoload_info() {
 function sendgrid_integration_get_api_key() {
   $config = config('sendgrid_integration.settings');
   if (module_exists('key')) {
-    $apikey = key_get_key_value($config->get('sendgrid_integration_secret_apikey'));
+    $apikey = $config->get('sendgrid_integration_secret_apikey');
+    $apikey = (empty($apikey)) ? '' : key_get_key_value($apikey);
   }
   else {
     $apikey = $config->get('sendgrid_integration_apikey');
