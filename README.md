@@ -25,6 +25,7 @@ The SendGrid library can be loaded in a few possible ways:
 
 Optional
 
+ * [Key](https://backdropcms.org/project/key)
  * [Maillog / Mail Developer](https://backdropcms.org/project/maillog)
 
 Installation

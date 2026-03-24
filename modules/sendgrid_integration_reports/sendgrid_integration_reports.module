@@ -206,8 +206,8 @@ function sendgrid_integration_reports_api_key($key) {
   $config = config('sendgrid_integration.settings');
   if (!$key) {
     // If not set in function call, load key from variables and throw errors if not there.
-    $key = $config->get('sendgrid_integration_apikey');
-    if (!$key) {
+    $key = sendgrid_integration_get_api_key();
+    if (empty($key)) {
       watchdog('sendgrid_integration_reports', t('Sendgrid Module is not setup with API key.'),
         array(), 'WATCHDOG_NOTICE', NULL);
       backdrop_set_message(t('Sendgrid Module is not setup with an API key.'), 'warning', TRUE);
@@ -216,6 +216,9 @@ function sendgrid_integration_reports_api_key($key) {
   return $key;
 }
 
+/**
+ *
+ */
 function sendgrid_integration_reports_get_stats($cache_id, $categories = [], $start_date = NULL, $end_date = NULL, $refresh = FALSE, $key_secret = NULL) {
   $config = config('sendgrid_integration_reports.settings');
 
@@ -249,7 +252,7 @@ function sendgrid_integration_reports_get_stats($cache_id, $categories = [], $st
     $end_date = date('Y-m-d', strtotime($end_date));
   }
   else {
-    // Set the end date which defaults to today
+    // Set the end date which defaults to today.
     $end_date = $config->get('sendgrid_integration_reports_end_date');
     $end_date = (!empty($end_date)) ? $end_date : date('Y-m-d');
   }
@@ -414,7 +417,7 @@ function sendgrid_integration_reports_get_stats_devices($key_secret = NULL) {
     return FALSE;
   }
 
-  // Hash in the api key for unique cache per key
+  // Hash in the api key for unique cache per key.
   $cache_key = hash('sha256', 'sr_devices:' . $key);
   if ($cache = cache_get($cache_key, 'cache_sendgrid_integration_reports')) {
     return $cache->data;

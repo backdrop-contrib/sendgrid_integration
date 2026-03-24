@@ -4,6 +4,10 @@
  * @file
  * Implements Backdrop MailSystemInterface.
  */
+
+/**
+ *
+ */
 class SendGridMailSystem implements MailSystemInterface {
 
   /**
@@ -29,10 +33,10 @@ class SendGridMailSystem implements MailSystemInterface {
    */
   public function mail(array $message) {
     $sendgrid_config = config('sendgrid_integration.settings');
-    $system = config('system.core');
-    $key_secret = $sendgrid_config->get('sendgrid_integration_apikey');
+    $system_config = config('system.core');
+    $key_secret = sendgrid_integration_get_api_key();
     if (empty($key_secret)) {
-      // Set a warning int he logs of there is no key.
+      // Set a warning in the logs if there is no key.
       watchdog('SendGrid Integration', t('No API Secret key has been set'), [], WATCHDOG_ERROR);
       // Return false to indicate message was not able to send.
       return FALSE;
@@ -47,7 +51,7 @@ class SendGridMailSystem implements MailSystemInterface {
     // Create a new SendGrid object.
     $sendgrid = new SendGrid\Client($key_secret, $options);
     $sendgrid_message = new SendGrid\Email();
-    $sitename = $system->get('site_name');
+    $sitename = $system_config->get('site_name');
     // Defining default unique args.
     $unique_args = [
       'id' => $message['id'],
@@ -86,14 +90,13 @@ class SendGridMailSystem implements MailSystemInterface {
       $data['fromname'] = $fromaddrarray[1];
     }
     else {
-      $data['from'] = $system->get('site_mail');
+      $data['from'] = $system_config->get('site_mail');
       $data['fromname'] = $sitename;
     }
 
     // Build the Sendgrid mail object.
     // The message MODULE and ID is used for the Category. Category is the only
     // thing in the Sendgrid UI you can use to sort mail.
-
     // This is an array of categories for Sendgrid statistics.
     $categories = [
       $sitename,
@@ -133,16 +136,16 @@ class SendGridMailSystem implements MailSystemInterface {
       }
     }
 
-    //Add cc and bcc in mail if they exist.
+    // Add cc and bcc in mail if they exist.
     $cc_bcc_keys = ['cc', 'bcc'];
     $address_cc_bcc = [];
 
-    // use Sendgrid Templates if they have been set
+    // Use Sendgrid Templates if they have been set.
     if (!empty($message['sendgrid']['template_id'])) {
       $sendgrid_message->setTemplateId($message['sendgrid']['template_id']);
     }
 
-    // use Sendgrid Substitutions if they have been set
+    // Use Sendgrid Substitutions if they have been set.
     if (!empty($message['sendgrid']['substitutions'])) {
       $sendgrid_message->setSubstitutions($message['sendgrid']['substitutions']);
     }
@@ -152,7 +155,7 @@ class SendGridMailSystem implements MailSystemInterface {
       switch (backdrop_strtolower($key)) {
         case 'content-type':
           // Parse several values on the Content-type header, storing them in an array like
-          // key=value -> $vars['key']='value'
+          // key=value -> $vars['key']='value'.
           $vars = explode(';', $value);
           foreach ($vars as $i => $var) {
             if ($cut = strpos($var, '=')) {
@@ -162,7 +165,7 @@ class SendGridMailSystem implements MailSystemInterface {
               $vars[$new_key] = $new_var;
             }
           }
-          // If $vars is empty then set an empty value at index 0 to avoid a PHP warning in the next statement
+          // If $vars is empty then set an empty value at index 0 to avoid a PHP warning in the next statement.
           $vars[0] = isset($vars[0]) ? $vars[0] : '';
           // Nested switch to process the various content types. We only care
           // about the first entry in the array.
@@ -190,8 +193,7 @@ class SendGridMailSystem implements MailSystemInterface {
               // Get the boundary ID from the Content-Type header.
               $boundary = $this->_get_substring($message['body'], 'boundary', '"', '"');
 
-              // Parse text and HTML portions
-
+              // Parse text and HTML portions.
               // Split the body based on the boundary ID.
               $body_parts = $this->_boundary_split($message['body'], $boundary);
               foreach ($body_parts as $body_part) {
@@ -218,7 +220,7 @@ class SendGridMailSystem implements MailSystemInterface {
               // Split the body based on the boundary ID.
               $body_parts = $this->_boundary_split($message['body'], $boundary);
 
-              // Parse text and HTML portions
+              // Parse text and HTML portions.
               foreach ($body_parts as $body_part) {
                 if (strpos($body_part, 'multipart/alternative')) {
                   // Get the second boundary ID from the Content-Type header.
@@ -257,7 +259,6 @@ class SendGridMailSystem implements MailSystemInterface {
                 else {
                   // This parses the message if there is no internal content
                   // type set after the multipart/mixed.
-
                   // If text/plain within the body part, add it to $mailer->Body.
                   if (strpos($body_part, 'text/plain')) {
                     // Clean up the text.
@@ -291,7 +292,7 @@ class SendGridMailSystem implements MailSystemInterface {
           break;
       }
 
-      // Handle latter case issue for cc and bcc key
+      // Handle latter case issue for cc and bcc key.
       if (in_array(backdrop_strtolower($key), $cc_bcc_keys)) {
         $mail_ids = explode(',', $value);
         foreach ($mail_ids as $mail_id) {
@@ -354,7 +355,7 @@ class SendGridMailSystem implements MailSystemInterface {
 
         // Used to separate different portions of the body string.
         $divider = str_repeat('-', 120) . "\n";
-        // Initialize object
+        // Initialize object.
         $record->body = '';
         // Load the attachments.
         $attachments = $sendgrid_message->getAttachments();
@@ -590,7 +591,7 @@ class SendGridMailSystem implements MailSystemInterface {
   protected function _remove_headers($input) {
     $part_array = explode("\n", $input);
 
-    // will strip these headers according to RFC2045
+    // Will strip these headers according to RFC2045.
     $headers_to_strip = [
       'Content-Type',
       'Content-Transfer-Encoding',
@@ -601,22 +602,21 @@ class SendGridMailSystem implements MailSystemInterface {
 
     while (count($part_array) > 0) {
 
-      // ignore trailing spaces/newlines
+      // Ignore trailing spaces/newlines.
       $line = rtrim($part_array[0]);
 
-      // if the line starts with a known header string
+      // If the line starts with a known header string.
       if (preg_match($pattern, $line)) {
         $line = rtrim(array_shift($part_array));
-        // remove line containing matched header.
-
-        // if line ends in a ';' and the next line starts with four spaces, it's a continuation
+        // Remove line containing matched header.
+        // If line ends in a ';' and the next line starts with four spaces, it's a continuation
         // of the header split onto the next line. Continue removing lines while we have this condition.
         while (substr($line, -1) == ';' && count($part_array) > 0 && substr($part_array[0], 0, 4) == '    ') {
           $line = rtrim(array_shift($part_array));
         }
       }
       else {
-        // no match header, must be past headers; stop searching.
+        // No match header, must be past headers; stop searching.
         break;
       }
     }
