@@ -19,21 +19,17 @@ function sendgrid_integration_admin() {
   $requirenewkey = TRUE;
   $apikey = sendgrid_integration_get_api_key();
   $requirenewkey = empty($apikey);
-  $key_description = $requirenewkey ? t('The secret key of your key pair. These are only generated once by Sendgrid. ') : t('You have saved an API key, though it is hidden above. If you wish to change it, enter a new key here.');
   if (module_exists('key')) {
-    if (user_access('administer keys')) {
-      $key_link = l(t('create a new key'), 'admin/config/system/keys/add');
-      $key_description .= ' ' . t('If the desired key is not listed, !link.', array('!link' => $key_link));
-    }
     $form['authentication']['sendgrid_integration_secret_apikey'] = [
       '#type' => 'key_select',
       '#required' => $requirenewkey,
-      '#title' => t('API Secret Key'),
-      '#description' => $key_description,
+      '#title' => t('SendGrid API Secret Key'),
+      '#default_value' => $config->get('sendgrid_integration_secret_apikey'),
     ];
   }
   else {
-    $key_description .= ' ' . t('You may wish to install the Key module for a more secure way of storing your API key.');
+    $key_description = $requirenewkey ? t('Enter the secret key of your key pair.') : t('You have saved an API key, though it is hidden above. If you wish to change it, enter a new key here.');
+    $key_description .= ' ' . t('You may wish to install the Key module for a more secure way of storing this.');
     $form['authentication']['sendgrid_integration_apikey'] = [
       '#type' => 'password',
       '#required' => $requirenewkey,
@@ -90,7 +86,7 @@ function sendgrid_integration_admin_validate($form, &$form_state) {
   $apikey = $config->get('sendgrid_integration_apikey');
 
   // Check for API secret key. If missing throw error.
-  if (empty($apikey) && empty($form_state['values']['sendgrid_integration_apikey'])) {
+  if (!module_exists('key') && empty($apikey) && empty($form_state['values']['sendgrid_integration_apikey'])) {
     form_set_error('authentication][sendgrid_integration_apikey', t('You have not stored an API Secret Key.'));
   }
 }
@@ -114,15 +110,23 @@ function sendgrid_integration_admin_submit($form, $form_state) {
   if (isset($form_state['values']['sendgrid_integration_maillog_devel'])) {
     $config->set('sendgrid_integration_maillog_devel', check_plain($form_state['values']['sendgrid_integration_maillog_devel']));
   }
-  $existingkey = $config->get('sendgrid_integration_apikey');
-  if (empty($form_state['values']['sendgrid_integration_apikey']) && !empty($existingkey)) {
-    return TRUE;
-  }
-  if (isset($form_state['values']['sendgrid_integration_apikey']) && !empty($form_state['values']['sendgrid_integration_apikey'])) {
-    $config->set('sendgrid_integration_apikey', check_plain($form_state['values']['sendgrid_integration_apikey']));
+  if (module_exists('key')) {
+    $config->set('sendgrid_integration_secret_apikey', check_plain($form_state['values']['sendgrid_integration_secret_apikey']));
     $config->save();
     backdrop_set_message(t('SendGrid Settings Saved'), 'status', FALSE);
     return TRUE;
+  }
+  else {
+    $existingkey = $config->get('sendgrid_integration_apikey');
+    if (empty($form_state['values']['sendgrid_integration_apikey']) && !empty($existingkey)) {
+      return TRUE;
+    }
+    if (isset($form_state['values']['sendgrid_integration_apikey']) && !empty($form_state['values']['sendgrid_integration_apikey'])) {
+      $config->set('sendgrid_integration_apikey', check_plain($form_state['values']['sendgrid_integration_apikey']));
+      $config->save();
+      backdrop_set_message(t('SendGrid Settings Saved'), 'status', FALSE);
+      return TRUE;
+    }
   }
 }
 
