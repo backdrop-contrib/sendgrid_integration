@@ -45,6 +45,7 @@ Current Maintainers
 
 - [Michael R. Bagnall](https://github.com/ElusiveMind).
 - [Joel Steidl](https://github.com/joelsteidl).
+- [Laryn Kragt Bakker](https://github.com/laryn).
 - Seeking additional maintainers.
 
 Credits
