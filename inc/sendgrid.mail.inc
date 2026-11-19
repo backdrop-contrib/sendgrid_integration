@@ -346,9 +346,15 @@ class SendGridMailSystem implements MailSystemInterface {
         $record->header_message_id = isset($message->MessageID) ? $message->MessageID : NULL;
         $record->subject = $sendgrid_message->getSubject();
         $record->header_from = $sendgrid_message->getFrom();
-        // This returns an array of emails so we have to make a string.
-        // @TODO Restore this once the V3 wrapper is available.
-        $record->header_to = implode(',', $sendgrid_message->getTos());
+        $to_addresses_array = $sendgrid_message->getTos();
+        if (is_array($to_addresses_array)) {
+          $to_addresses_string = implode(',', $to_addresses);
+        }
+        else {
+          $to_addresses_string = $to_addresses_array;
+          $to_addresses_array = explode(',', $to_addresses_string);
+        }
+        $record->header_to = $to_addresses_string;
         $record->header_reply_to = $sendgrid_message->getReplyTo();
         $record->header_all = serialize($message['headers']);
         $record->sent_date = REQUEST_TIME;
@@ -359,16 +365,15 @@ class SendGridMailSystem implements MailSystemInterface {
         $record->body = '';
         // Load the attachments.
         $attachments = $sendgrid_message->getAttachments();
-        $toaddresses = $sendgrid_message->getTos();
-        $toaddressesnames = $sendgrid_message->getToNames();
+        $to_addresses_names = $sendgrid_message->getToNames();
         $record->body .= 'Addressing Information' . "\n";
         $i = 0;
-        foreach ($toaddresses as $item) {
+        foreach ($to_addresses_array as $item) {
           $record->body .= 'To Address ' . $i . ' : ' . $item . "\n";
           $i++;
         }
         $i = 0;
-        foreach ($toaddressesnames as $item) {
+        foreach ($to_addresses_names as $item) {
           $record->body .= 'To Address Names ' . $i . ' : ' . $item . "\n";
           $i++;
         }
